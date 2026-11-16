@@ -99,7 +99,7 @@ public class MatchController {
         matchRepository.delete(match);
     }
 
-    // ---------- Méthodes utilitaires ----------
+    // Méthodes utilitaires
 
     private Match trouver(Long id) {
         return matchRepository.findById(id)

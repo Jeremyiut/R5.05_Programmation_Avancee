@@ -2,8 +2,10 @@ package com.example.demo.Controller;
 
 import com.example.demo.Model.Joueur;
 import com.example.demo.Repository.JoueurRepository;
-import org.springframework.http.ResponseEntity;
+import com.example.demo.Repository.SelectionRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -12,9 +14,11 @@ import java.util.List;
 public class JoueurController {
 
     private final JoueurRepository joueurRepository;
+    private final SelectionRepository selectionRepository;
 
-    public JoueurController(JoueurRepository joueurRepository) {
+    public JoueurController(JoueurRepository joueurRepository, SelectionRepository selectionRepository) {
         this.joueurRepository = joueurRepository;
+        this.selectionRepository = selectionRepository;
     }
 
     @GetMapping
@@ -23,10 +27,8 @@ public class JoueurController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Joueur> getById(@PathVariable Long id) {
-        return joueurRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public Joueur getById(@PathVariable Long id) {
+        return trouver(id);
     }
 
     @PostMapping
@@ -34,40 +36,43 @@ public class JoueurController {
         return joueurRepository.save(joueur);
     }
 
+    // PUT : remplacement complet
     @PutMapping("/{id}")
-    public ResponseEntity<Joueur> update(@PathVariable Long id, @RequestBody Joueur updated) {
-        return joueurRepository.findById(id)
-                .map(joueur -> {
-                    joueur.setNom(updated.getNom());
-                    joueur.setPrenom(updated.getPrenom());
-                    joueur.setPoste(updated.getPoste());
-                    joueur.setNumero(updated.getNumero());
-                    joueur.setActif(updated.getActif());
-                    return ResponseEntity.ok(joueurRepository.save(joueur));
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public Joueur update(@PathVariable Long id, @RequestBody Joueur updated) {
+        Joueur joueur = trouver(id);
+        joueur.setNom(updated.getNom());
+        joueur.setPrenom(updated.getPrenom());
+        joueur.setPoste(updated.getPoste());
+        joueur.setNumero(updated.getNumero());
+        joueur.setActif(updated.getActif());
+        return joueurRepository.save(joueur);
     }
 
+    // PATCH : modification partielle
     @PatchMapping("/{id}")
-    public ResponseEntity<Joueur> patch(@PathVariable Long id, @RequestBody Joueur partial) {
-        return joueurRepository.findById(id)
-                .map(joueur -> {
-                    if (partial.getNom() != null) joueur.setNom(partial.getNom());
-                    if (partial.getPrenom() != null) joueur.setPrenom(partial.getPrenom());
-                    if (partial.getPoste() != null) joueur.setPoste(partial.getPoste());
-                    if (partial.getNumero() != null) joueur.setNumero(partial.getNumero());
-                    if (partial.getActif() != null) joueur.setActif(partial.getActif());
-                    return ResponseEntity.ok(joueurRepository.save(joueur));
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public Joueur patch(@PathVariable Long id, @RequestBody Joueur partial) {
+        Joueur joueur = trouver(id);
+        if (partial.getNom() != null) joueur.setNom(partial.getNom());
+        if (partial.getPrenom() != null) joueur.setPrenom(partial.getPrenom());
+        if (partial.getPoste() != null) joueur.setPoste(partial.getPoste());
+        if (partial.getNumero() != null) joueur.setNumero(partial.getNumero());
+        if (partial.getActif() != null) joueur.setActif(partial.getActif());
+        return joueurRepository.save(joueur);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!joueurRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        Joueur joueur = trouver(id);
+        if (selectionRepository.existsByJoueurId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Impossible de supprimer ce joueur : il a déjà participé à un match");
         }
-        joueurRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        joueurRepository.delete(joueur);
+    }
+
+    private Joueur trouver(Long id) {
+        return joueurRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Joueur introuvable"));
     }
 }

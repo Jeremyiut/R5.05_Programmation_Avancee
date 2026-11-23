@@ -1,6 +1,7 @@
 package com.example.demo.Controller;
 
 import com.example.demo.Model.Joueur;
+import com.example.demo.Repository.CommentaireRepository;
 import com.example.demo.Repository.JoueurRepository;
 import com.example.demo.Repository.SelectionRepository;
 import org.springframework.http.HttpStatus;
@@ -15,10 +16,13 @@ public class JoueurController {
 
     private final JoueurRepository joueurRepository;
     private final SelectionRepository selectionRepository;
+    private final CommentaireRepository commentaireRepository;
 
-    public JoueurController(JoueurRepository joueurRepository, SelectionRepository selectionRepository) {
+
+    public JoueurController(JoueurRepository joueurRepository, SelectionRepository selectionRepository, CommentaireRepository commentaireRepository) {
         this.joueurRepository = joueurRepository;
         this.selectionRepository = selectionRepository;
+        this.commentaireRepository = commentaireRepository;
     }
 
     @GetMapping
@@ -68,6 +72,8 @@ public class JoueurController {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Impossible de supprimer ce joueur : il a déjà participé à un match");
         }
+        // Suppression de tous les commentaires assignés au joueur
+        commentaireRepository.deleteAll(commentaireRepository.findByJoueurIdOrderByIdDesc(id));
         joueurRepository.delete(joueur);
     }
 

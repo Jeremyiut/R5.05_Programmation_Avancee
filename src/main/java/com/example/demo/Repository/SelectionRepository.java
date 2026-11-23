@@ -11,4 +11,5 @@ public interface SelectionRepository extends JpaRepository<Selection, Long> {
     boolean existsByJoueurId(Long joueurId);
     long countByMatchIdAndTitulaireTrue(Long matchId);
     long countByMatchIdAndTitulaireFalse(Long matchId);
+    List<Selection> findByJoueurId(Long joueurId);
 }
